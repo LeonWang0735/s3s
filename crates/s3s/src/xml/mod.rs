@@ -104,3 +104,37 @@ mod manually {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::dto::ETag;
+    use std::io::Cursor;
+
+    #[test]
+    fn etag_xml_serialization_uses_literal_quotes_not_entities() {
+        let etag = ETag::Strong("b264846671938cd88cd6121b3171589b".to_string());
+        let mut buf = Vec::new();
+        let mut ser = Serializer::new(Cursor::new(&mut buf));
+        ser.element("ETag", |s| etag.serialize_content(s)).unwrap();
+        let xml = String::from_utf8(buf).unwrap();
+        assert!(
+            xml.contains("\"b264846671938cd88cd6121b3171589b\""),
+            "ETag must be serialized with literal quotes for S3; got: {xml}"
+        );
+        assert!(!xml.contains("&quot;"), "ETag must not use HTML entity encoding; got: {xml}");
+    }
+
+    #[test]
+    fn etag_xml_serialization_long_value_uses_literal_quotes() {
+        let long_hash = "a".repeat(65);
+        let etag = ETag::Strong(long_hash.clone());
+        let mut buf = Vec::new();
+        let mut ser = Serializer::new(Cursor::new(&mut buf));
+        ser.element("ETag", |s| etag.serialize_content(s)).unwrap();
+        let xml = String::from_utf8(buf).unwrap();
+        let expected = format!("\"{long_hash}\"");
+        assert!(xml.contains(&expected), "Long ETag must use literal quotes; got: {xml}");
+        assert!(!xml.contains("&quot;"), "Long ETag must not use &quot;; got: {xml}");
+    }
+}
