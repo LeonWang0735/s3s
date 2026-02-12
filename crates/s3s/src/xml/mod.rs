@@ -83,10 +83,9 @@ mod manually {
                 buf.push('"');
                 buf.push_str(val);
                 buf.push('"');
-                <str as SerializeContent>::serialize_content(&buf, s)
+                s.write_raw_text(buf.as_str())
             } else {
-                let buf = format!("\"{val}\"");
-                <str as SerializeContent>::serialize_content(&buf, s)
+                s.write_raw_text(&format!("\"{val}\""))
             }
         }
     }
